@@ -9,7 +9,7 @@ Keine Anlageberatung.
 | Ablauf | Wann | Was |
 |---|---|---|
 | `Alerts` | Mo–Fr alle 15 Minuten während der Handelszeiten, dazu ein Abschlusslauf | Prüft die Watchlist und meldet über ntfy: einmal „vorläufig“, nach Börsenschluss „bestätigt“ oder „nicht bestätigt“ |
-| `Rangliste und App` | Mo–Fr 22:40 UTC | Lädt die Trade-Republic-Liste, berechnet die Rangliste neu, prüft das Ranking gegen die Vergangenheit und veröffentlicht die App über GitHub Pages |
+| `Rangliste und App` | Mo–Fr 15:45 und 22:40 UTC | Lädt die Trade-Republic-Liste, berechnet die Rangliste neu, prüft das Ranking gegen die Vergangenheit, zählt aus, was nach einem Tief folgte (Ansicht „Hot“), und veröffentlicht die App über GitHub Pages |
 
 Lässt das Ranking nach, kommt montags eine Warnung aufs iPhone.
 

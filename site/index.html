@@ -73,6 +73,7 @@ input[type="search"] { width: 100%; border: 1px solid var(--line); background: v
 </div>
 <nav class="tabs" aria-label="Bereiche"><div>
   <button class="tab" data-tab="heute"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg>Heute</button>
+  <button class="tab" data-tab="hot"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c.8 3.2 4.5 4.8 4.5 9a4.5 4.5 0 0 1-9 0c0-1.6.7-2.7 1.4-3.5.4 1.2 1 1.9 1.8 2.2C10.400 8.500 11 5.800 12 3z"/></svg>Hot</button>
   <button class="tab" data-tab="entdecken"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-6 4 4 4-8 5 7"/></svg>Entdecken</button>
   <button class="tab" data-tab="watchlist"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z"/></svg>Watchlist</button>
 </div></nav>
@@ -170,6 +171,34 @@ function viewHeute() {
   <p class="sub">Stand ${esc(D.generated.split(" ")[0].split("-").reverse().join("."))}, ${esc(D.generated.split(" ")[1])} Uhr · ${num(D.universe, 0)} handelbare Aktien geprüft · Keine Anlageberatung.</p>`;
 }
 
+const inGrid = (s) => s.r != null && s.r <= D.universe * 0.1;
+const isHot = (s) => inGrid(s) && s.hs && s.sw && s.sw.pct < 0 && s.hs.prog >= 1;
+const euro = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + num(Math.abs(v), 0) + " €";
+function scenario(s) {
+  const q = position(s);
+  return { q, gain: q.inv * s.hs.up - q.cost, loss: -q.inv * s.hs.dn - q.cost };
+}
+function oddsHtml() {
+  const h = D.hot.hot, a = D.hot.any, bar = (p, k) => `<i style="display:block;height:8px;border-radius:4px;background:var(--${k});width:${(p * 100).toFixed(0)}%"></i>`;
+  return `<section class="panel"><h2>Was nach so einem Tief folgte</h2>
+    <div><div style="display:flex;justify-content:space-between"><span>Zuerst ein typischer Aufschwung</span><b>${num(h.p_up * 100, 0)} %</b></div>${bar(h.p_up, "up")}</div>
+    <div><div style="display:flex;justify-content:space-between"><span>Zuerst ein weiterer Abschwung</span><b>${num(h.p_dn * 100, 0)} %</b></div>${bar(h.p_dn, "down")}</div>
+    <div><div style="display:flex;justify-content:space-between"><span>Keins von beiden in 20 Tagen</span><b>${num(h.p_none * 100, 0)} %</b></div>${bar(h.p_none, "muted")}</div>
+    <div class="sub">Kam der Aufschwung, dann im Mittel nach ${h.days_up} Handelstagen. Über alle ${num(h.n, 0)} Fälle lag der Kurs nach 20 Handelstagen im Schnitt ${pct(h.mean20)} höher, im mittleren Fall ${pct(h.med20)}. An beliebigen Tagen waren es ${pct(a.mean20)} und ${pct(a.med20)}. Wird bei jedem Lauf neu ausgezählt.</div></section>`;
+}
+function viewHot() {
+  const a = D.stocks.filter(isHot).sort((x, y) => y.hs.prog - x.hs.prog);
+  const rows = a.map((s) => { const c = scenario(s);
+    return `<button class="row" data-open="${s.id}"><span class="grow"><span class="name" style="display:block">${esc(s.n)}</span>
+      <span class="sub"><span class="down">${pct(s.sw.pct, 0)}</span> in ${s.sw.days} ${s.sw.days === 1 ? "Tag" : "Tagen"} · typisch −${num(s.hs.dn * 100, 0)} %<span style="display:block">möglich <span class="up">+${num(s.hs.up * 100, 0)} %</span> in etwa ${s.hs.up_days} ${s.hs.up_days === 1 ? "Tag" : "Tagen"}</span></span></span>
+      <span style="text-align:right;flex:none"><span class="up" style="display:block;font:600 15px var(--display)">${euro(c.gain)}</span><span class="sub down">${euro(c.loss)}</span></span></button>`; }).join("");
+  return `
+  <section class="stack" style="gap:8px"><h2>Jetzt tief: ${a.length} ${a.length === 1 ? "Aktie" : "Aktien"}</h2>
+    <div class="list">${rows || `<div class="row sub" style="cursor:default">Gerade steht keine Aktie aus dem Raster tief.</div>`}</div>
+    <p class="sub" style="margin:0">Im Raster: die 10 % mit den häufigsten Schwüngen. Tief: Der laufende Abschwung ist mindestens so groß wie ein typischer Abschwung dieser Aktie. Rechts: Ergebnis bei ${num(budget, 0)} € Einsatz nach Kosten, wenn der typische Aufschwung kommt (grün) oder ein weiterer typischer Abschwung (rot). Den Einsatz änderst du unter „Heute“.</p></section>
+  ${oddsHtml()}
+  <p class="sub">Stand ${esc(D.generated.split(" ")[0].split("-").reverse().join("."))}, ${esc(D.generated.split(" ")[1])} Uhr · Statistik aus der Vergangenheit, keine Zusage.</p>`;
+}
 function listed() {
   let a = D.stocks.filter((s) => s.r != null);
   if (query) { const q = query.toLowerCase(); a = a.filter((s) => s.n.toLowerCase().includes(q) || s.s.toLowerCase().includes(q)); }
@@ -231,6 +260,12 @@ function viewDetail(s) {
     <div class="kv sub">Klare Monate<b style="color:var(--fg)">${s.kb} von ${s.nb}</b></div>
     <div class="kv sub">Einordnung<b style="color:var(--fg)">${esc(s.st)}</b></div></div>
     <div class="sub">Klare Monate: Vier-Wochen-Blöcke mit mindestens 3 Schwüngen von je 5 % und wenig Netto-Bewegung.</div></section>
+  ${isHot(s) ? (() => { const c = scenario(s), h = D.hot.hot; return `<section class="panel"><h2>Prognose: steht tief</h2>
+    <div class="grid"><div class="kv sub">Möglicher Aufschwung<b class="up">+${num(s.hs.up * 100, 0)} % · ${euro(c.gain)}</b></div>
+    <div class="kv sub">Typische Dauer<b style="color:var(--fg)">${s.hs.up_days} ${s.hs.up_days === 1 ? "Tag" : "Tage"}</b></div>
+    <div class="kv sub">Weiterer Abschwung<b class="down">−${num(s.hs.dn * 100, 0)} % · ${euro(c.loss)}</b></div>
+    <div class="kv sub">Was kam zuerst<b style="color:var(--fg)">${num(h.p_up * 100, 0)} % zu ${num(h.p_dn * 100, 0)} %</b></div></div>
+    <div class="sub">Aufschwung und Abschwung sind die typischen Größen dieser Aktie aus 24 Wochen, die Eurobeträge gelten für ${num(budget, 0)} € Einsatz nach Kosten. Die Quote stammt aus ${num(h.n, 0)} vergleichbaren Fällen aller Aktien im Raster: In ${num(h.p_up * 100, 0)} % kam zuerst der Aufschwung, im Mittel nach ${h.days_up} Handelstagen.</div></section>`; })() : ""}
   ${s.typ ? (() => { const q = position(s); return q.n > 0 ? `<section class="panel"><h2>Mit deinem Budget</h2>
     <div class="grid"><div class="kv sub">Stück für ${num(budget, 0)} €<b style="color:var(--fg)">${whole ? num(q.n, 0) : "≈ " + num(q.n, q.n < 10 ? 1 : 0)}</b></div>
     <div class="kv sub">Kosten hin und zurück<b style="color:var(--fg)">${num(q.cost)} €</b></div></div>
@@ -243,7 +278,7 @@ function viewDetail(s) {
 
 function render() {
   if (!D) return;
-  const h = (location.hash || "#heute").slice(1), tab = h.startsWith("a-") ? null : (["heute", "entdecken", "watchlist"].includes(h) ? h : "heute");
+  const h = (location.hash || "#heute").slice(1), tab = h.startsWith("a-") ? null : (["heute", "hot", "entdecken", "watchlist"].includes(h) ? h : "heute");
   document.querySelectorAll(".tab").forEach((t) => t.dataset.tab === tab ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current"));
   const act = $("#actions"); act.innerHTML = "";
   if (!tab) {
@@ -255,8 +290,8 @@ function render() {
       <button class="icon" id="back" aria-label="Zurück"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`;
     $("#view").innerHTML = viewDetail(s);
   } else {
-    $("#title").textContent = { heute: "Heute", entdecken: "Entdecken", watchlist: "Watchlist" }[tab];
-    $("#view").innerHTML = tab === "heute" ? viewHeute() : tab === "entdecken" ? viewEntdecken() : viewWatchlist();
+    $("#title").textContent = { heute: "Heute", hot: "Hot", entdecken: "Entdecken", watchlist: "Watchlist" }[tab];
+    $("#view").innerHTML = tab === "heute" ? viewHeute() : tab === "hot" ? viewHot() : tab === "entdecken" ? viewEntdecken() : viewWatchlist();
   }
 }
 
