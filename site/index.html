@@ -87,6 +87,29 @@ const cls = (v) => (v > 0 ? "up" : v < 0 ? "down" : "");
 const money = (s) => num(s.p) + (s.cur === "EUR" ? " €" : s.cur === "USD" ? " $" : "");
 const dateDe = (iso) => iso.split("-").reverse().join(".");
 let D = null, byId = {}, filter = "rang", query = "", shown = 40, range = 120;
+// Kosten bei Trade Republic: 1 € je Order, also 2 € für Kauf und Verkauf, dazu geschätzt 0,3 % Spread
+const FEE = 2, SPREAD = 0.003, HURDLE = 0.25;
+let budget = 500, whole = false;
+try { budget = +localStorage.getItem("budget") || 500; whole = localStorage.getItem("whole") === "1"; } catch (e) {}
+const eur = (s) => (s.cur === "USD" && D.fx ? s.p / D.fx : s.p);
+function position(s) {
+  const n = whole ? Math.floor(budget / eur(s)) : budget / eur(s), inv = n * eur(s), c = inv > 0 ? FEE + SPREAD * inv : 0;
+  return { n, inv, cost: c, share: inv > 0 ? c / inv : Infinity };
+}
+function ranked() { return D.stocks.filter((s) => s.r != null && s.nb >= 6 && s.typ).sort((a, b) => a.r - b.r); }
+function top5() { return ranked().filter((s) => { const q = position(s); return q.n > 0 && q.share <= HURDLE * s.typ; }).slice(0, 5); }
+function top5Html() {
+  const a = top5();
+  let h = a.map((s, i) => { const q = position(s);
+    return `<button class="row" data-open="${s.id}"><span class="rank">${i + 1}</span><span class="grow"><span class="name" style="display:block">${esc(s.n)}</span>
+      <span class="sub">${whole ? num(q.n, 0) : "≈ " + num(q.n, q.n < 10 ? 1 : 0)} Stück · Kosten ${num(q.cost)} €<span style="display:block">±${num(s.typ * 100, 0)} % typisch · ${num(s.f, 1)} je 4 Wo.</span></span></span>${spark(s)}</button>`; }).join("");
+  if (a.length < 5) {
+    const need = ranked().slice(0, 5).map((s) => Math.max(whole ? eur(s) : 0, FEE / (HURDLE * s.typ - SPREAD)));
+    const z = Math.ceil(Math.max(...need) / 10) * 10;
+    h += `<div class="row sub" style="cursor:default">${budget > 0 ? `Bei ${num(budget, 0)} € Einsatz ${whole ? "passt nicht jede Aktie als ganzes Stück, oder die Kosten sind zu hoch" : `kosten Kauf und Verkauf ${num((FEE + SPREAD * budget) / budget * 100, 1)} %`}. ` : ""}Für alle fünf braucht es etwa ${num(z, 0)} € je Trade.</div>`;
+  }
+  return h;
+}
 
 function stars() { try { return JSON.parse(localStorage.getItem("stars") || "[]"); } catch (e) { return []; } }
 function setStars(a) { try { localStorage.setItem("stars", JSON.stringify(a)); } catch (e) {} }
@@ -128,6 +151,13 @@ function viewHeute() {
   const baseY = (58 - c.recent_base_hits / maxH * 52).toFixed(1);
   const good = c.state === "wie erwartet";
   return `
+  <section class="stack" style="gap:8px"><h2>Top 5 für dein Budget</h2>
+    <div class="panel" style="flex-direction:row;align-items:center;gap:12px;flex-wrap:wrap">
+      <label for="budget" class="sub" style="flex:1;min-width:120px">Einsatz je Trade in €</label>
+      <input type="number" id="budget" inputmode="numeric" min="10" step="50" value="${budget}" style="width:110px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:600 16px var(--display);padding:8px 10px;border-radius:10px;text-align:right">
+      <label class="sub" style="display:flex;align-items:center;gap:8px;width:100%"><input type="checkbox" id="whole" ${whole ? "checked" : ""}> Nur ganze Aktien (nötig für Limit-Orders)</label></div>
+    <div class="list" id="top5">${top5Html()}</div>
+    <p class="sub" style="margin:0">Auswahl nach festen Regeln: die häufigsten Schwünge der letzten 24 Wochen, bei denen Gebühr und Spread höchstens ein Viertel eines typischen Schwungs kosten. Im Rückblick zeigten ${num(c.top5_rate * 100, 0)} % der jeweiligen Top 5 danach wieder ein klares Auf und Ab, alle Aktien ${num(c.base_rate * 100, 0)} %. Keine Kaufempfehlung.</p></section>
   <section class="panel"><h2>Marktlage</h2>
     <div class="big">${mz == null ? "Keine Daten" : panic ? "Ausverkauf" : "Ruhig"}</div>
     <div class="sub">${mz == null ? "" : `S&amp;P 500 liegt ${num(Math.abs(mz), 1)} Standardabweichungen ${mz < 0 ? "unter" : "über"} seinem 20-Tage-Schnitt. Als Ausverkauf gilt ein Wert unter −${num(Math.abs(D.market_panic), 1)}.`}</div></section>
@@ -201,6 +231,10 @@ function viewDetail(s) {
     <div class="kv sub">Klare Monate<b style="color:var(--fg)">${s.kb} von ${s.nb}</b></div>
     <div class="kv sub">Einordnung<b style="color:var(--fg)">${esc(s.st)}</b></div></div>
     <div class="sub">Klare Monate: Vier-Wochen-Blöcke mit mindestens 3 Schwüngen von je 5 % und wenig Netto-Bewegung.</div></section>
+  ${s.typ ? (() => { const q = position(s); return q.n > 0 ? `<section class="panel"><h2>Mit deinem Budget</h2>
+    <div class="grid"><div class="kv sub">Stück für ${num(budget, 0)} €<b style="color:var(--fg)">${whole ? num(q.n, 0) : "≈ " + num(q.n, q.n < 10 ? 1 : 0)}</b></div>
+    <div class="kv sub">Kosten hin und zurück<b style="color:var(--fg)">${num(q.cost)} €</b></div></div>
+    <div class="sub">Das sind ${num(q.share * 100, 1)} % des Einsatzes und ${num(q.share / s.typ * 100, 0)} % eines typischen Schwungs. Gerechnet mit 1 € je Order und geschätzt 0,3 % Spread.</div></section>` : ""; })() : ""}
   <section class="panel"><h2>Letzte Schwünge</h2>
     ${s.legs.slice().reverse().map((l) => `<div class="leg"><span class="${cls(l.pct)}" style="font-weight:500">${pct(l.pct)}</span><span class="sub">${l.days} ${l.days === 1 ? "Tag" : "Tage"}</span></div>`).join("") || `<div class="sub">Noch keine abgeschlossenen Schwünge.</div>`}</section>
   ${s.isin ? `<section class="panel"><h2>Bei Trade Republic finden</h2><div class="isin" id="isin">${esc(s.isin)}</div>
@@ -238,6 +272,12 @@ document.addEventListener("click", (e) => {
   else if (t.id === "copy") { const v = $("#isin").textContent; (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(() => toast("ISIN kopiert"), () => { const r = document.createRange(); r.selectNodeContents($("#isin")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("ISIN markiert, jetzt kopieren"); }); }
 });
 document.addEventListener("input", (e) => {
+  if (e.target.id === "budget" || e.target.id === "whole") {
+    if (e.target.id === "budget") budget = Math.max(0, +e.target.value || 0); else whole = e.target.checked;
+    try { localStorage.setItem("budget", budget); localStorage.setItem("whole", whole ? "1" : "0"); } catch (err) {}
+    const el = $("#top5"); if (el) el.innerHTML = top5Html();
+    return;
+  }
   if (e.target.id !== "q") return;
   query = e.target.value; shown = 40; const pos = e.target.selectionStart;
   render(); const q = $("#q"); if (q) { q.focus(); q.setSelectionRange(pos, pos); }

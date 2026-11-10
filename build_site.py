@@ -46,7 +46,7 @@ def read_watchlist():
 def ranking_check(frames, symbols):
     """Rangliste rückwirkend für jeden Stichtag nachstellen und gegen die Folgewochen prüfen."""
     ref = max((frames[s] for s in symbols), key=len).index
-    series = []
+    series, top5 = [], []
     for back in range(250, B - 1, -5):
         scored = []
         for s in symbols:
@@ -60,6 +60,7 @@ def ranking_check(frames, symbols):
             continue
         scored.sort(key=lambda x: -x[0])
         top = scored[:CHECK_TOP]
+        top5.append(np.mean([y for _, y in scored[:5]]))
         series.append({
             "date": ref[-(back + 1)].strftime("%Y-%m-%d"),
             "hits": int(sum(y for _, y in top)),
@@ -77,6 +78,8 @@ def ranking_check(frames, symbols):
         "recent_hits": round(float(np.mean([x["hits"] for x in last])), 1),
         "recent_base_hits": round(float(base * CHECK_TOP), 1),
         "lift": round(float(lift), 1),
+        "top5_rate": round(float(np.mean(top5)), 3),
+        "base_rate": round(float(np.mean([x["base"] for x in series])), 3),
         "state": state,
     }
 
@@ -151,7 +154,13 @@ def main():
     except Exception:
         mz = None
 
+    try:
+        fx = round(float(core.fetch("EURUSD=X", "5d")["Close"].iloc[-1]), 4)   # US-Dollar je Euro
+    except Exception:
+        fx = None
+
     data = {
+        "fx": fx,
         "generated": datetime.now(BERLIN).strftime("%Y-%m-%d %H:%M"),   # deutsche Zeit, auch auf GitHubs Servern
         "universe": int(len(df)),
         "market_z": None if mz is None else round(mz, 2),
