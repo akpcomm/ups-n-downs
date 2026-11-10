@@ -42,7 +42,7 @@ jobs:
         run: |
           mkdir _site
           cat site/_head.html site/index.html > _site/index.html
-          cp site/data.json _site/data.json
+          cp site/data.json site/manifest.json site/icon-180.png site/icon-512.png _site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

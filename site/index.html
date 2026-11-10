@@ -319,7 +319,13 @@ document.addEventListener("input", (e) => {
 });
 window.addEventListener("hashchange", () => { render(); window.scrollTo(0, 0); });
 
-fetch("data.json").then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((d) => {
-  D = d; D.stocks.forEach((s) => (byId[s.id] = s)); render();
-}).catch(() => { $("#view").innerHTML = `<p class="sub">Die Daten konnten nicht geladen werden. Lade die Seite neu.</p>`; });
+let loadedAt = 0;
+function load() {
+  return fetch("data.json", { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((d) => {
+    D = d; byId = {}; D.stocks.forEach((s) => (byId[s.id] = s)); loadedAt = Date.now(); render();
+  });
+}
+load().catch(() => { $("#view").innerHTML = `<p class="sub">Die Daten konnten nicht geladen werden. Lade die Seite neu.</p>`; });
+// Als App auf dem Home-Bildschirm gibt es keinen Neu-laden-Knopf: beim Zurückkehren frische Daten holen
+document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - loadedAt > 10 * 60 * 1000) load().catch(() => {}); });
 </script>
