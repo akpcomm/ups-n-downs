@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+.DS_Store
+ntfy-topic.txt
+.claude/
+data/tr/
+data/prices_cache.pkl
+data/screener_run.log
+state/
+data/tr_aktien.csv
+data/screener.csv
+site/data.json
+_site/

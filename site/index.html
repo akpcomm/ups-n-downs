@@ -1,0 +1,250 @@
+<meta charset="utf-8">
+<title>ups'n'downs</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: eine schmale App-Spalte, oben klebender Titel, unten feste Tab-Leiste; Listen statt Karten. */
+:root {
+  --bg: #F4F6FA; --surface: #FFFFFF; --fg: #10141C; --muted: #5F6B80; --line: #E3E7EF;
+  --accent: #2B4BF2; --on-accent: #FFFFFF; --up: #0B8F63; --down: #D63B45; --warn: #9A6408;
+  --up-bg: #E3F6EE; --down-bg: #FCE9EA; --warn-bg: #FBF0D9; --band: #E9EDF5;
+  --display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0C0F15; --surface: #151A23; --fg: #F1F4F9; --muted: #94A0B5; --line: #252C39;
+  --accent: #8098FF; --on-accent: #0C0F15; --up: #3FD694; --down: #FF7078; --warn: #E9B44C;
+  --up-bg: #0F2F24; --down-bg: #3A1A1E; --warn-bg: #33270F; --band: #1D2430; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0C0F15; --surface: #151A23; --fg: #F1F4F9; --muted: #94A0B5; --line: #252C39;
+  --accent: #8098FF; --on-accent: #0C0F15; --up: #3FD694; --down: #FF7078; --warn: #E9B44C;
+  --up-bg: #0F2F24; --down-bg: #3A1A1E; --warn-bg: #33270F; --band: #1D2430; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font: 400 15px/1.45 var(--body); font-variant-numeric: tabular-nums }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg) }
+.app { max-width: 520px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 96px }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 14px 10px }
+h1 { font: 600 24px/1.15 var(--display); margin: 0; letter-spacing: -0.01em; text-wrap: balance }
+h2 { font: 600 13px/1.3 var(--body); color: var(--muted); margin: 0; letter-spacing: 0.04em; text-transform: uppercase }
+.stack { display: flex; flex-direction: column; gap: 18px }
+.panel { background: var(--surface); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px }
+.big { font: 600 20px/1.2 var(--display) }
+.sub { color: var(--muted); font-size: 13px }
+.list { background: var(--surface); border-radius: 16px; overflow: hidden }
+.row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; border: 0; border-bottom: 1px solid var(--line); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer }
+.row:last-child { border-bottom: 0 }
+.row:focus-visible, .chip:focus-visible, .tab:focus-visible, .btn:focus-visible, .icon:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.rank { width: 26px; color: var(--muted); font-size: 13px; flex: none }
+.grow { flex: 1; min-width: 0 }
+.name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.spark { flex: none; width: 56px; height: 26px }
+.pill { flex: none; font-size: 12px; font-weight: 500; padding: 3px 9px; border-radius: 999px; background: var(--band); color: var(--muted); white-space: nowrap }
+.pill.good { background: var(--up-bg); color: var(--up) } .pill.warn { background: var(--warn-bg); color: var(--warn) } .pill.bad { background: var(--down-bg); color: var(--down) }
+.up { color: var(--up) } .down { color: var(--down) }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none }
+.chip { flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font: 500 13px var(--body); padding: 7px 13px; border-radius: 999px; cursor: pointer }
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg) }
+input[type="search"] { width: 100%; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: 400 15px var(--body); padding: 10px 14px; border-radius: 12px }
+.btn { border: 0; background: var(--accent); color: var(--on-accent); font: 600 15px var(--body); padding: 13px 16px; border-radius: 14px; cursor: pointer; width: 100% }
+.btn.ghost { background: var(--surface); color: var(--fg); border: 1px solid var(--line) }
+.icon { border: 0; background: var(--surface); color: var(--fg); width: 40px; height: 40px; border-radius: 12px; cursor: pointer; display: grid; place-items: center; flex: none }
+.icon[aria-pressed="true"] { background: var(--accent); color: var(--on-accent) }
+.price { font: 600 34px/1.1 var(--display); letter-spacing: -0.02em }
+.chart { width: 100%; height: auto; display: block }
+.meter { height: 8px; border-radius: 4px; background: var(--band); overflow: hidden }
+.meter > i { display: block; height: 100%; border-radius: 4px; background: var(--fg) }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px }
+.kv b { display: block; font: 600 18px/1.2 var(--display) }
+.leg { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--line) }
+.leg:last-child { border-bottom: 0 }
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--surface); border-top: 1px solid var(--line); padding: 6px max(16px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)) }
+.tabs > div { max-width: 520px; margin: 0 auto; display: flex }
+.tab { flex: 1; border: 0; background: none; color: var(--muted); font: 500 11px var(--body); padding: 6px 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; border-radius: 10px }
+.tab[aria-current="page"] { color: var(--fg) }
+.tab svg, .icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(86px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-size: 13px; z-index: 9 }
+.isin { font: 500 14px ui-monospace, SFMono-Regular, Menlo, monospace; user-select: all }
+</style>
+
+<div class="app">
+  <div class="top"><h1 id="title">Heute</h1><div id="actions" style="display:flex;gap:8px"></div></div>
+  <main id="view" class="stack"><p class="sub">Daten werden geladen.</p></main>
+</div>
+<nav class="tabs" aria-label="Bereiche"><div>
+  <button class="tab" data-tab="heute"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg>Heute</button>
+  <button class="tab" data-tab="entdecken"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-6 4 4 4-8 5 7"/></svg>Entdecken</button>
+  <button class="tab" data-tab="watchlist"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z"/></svg>Watchlist</button>
+</div></nav>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const num = (v, d = 2) => new Intl.NumberFormat("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
+const pct = (v, d = 1) => (v > 0 ? "+" : v < 0 ? "−" : "") + num(Math.abs(v) * 100, d) + " %";
+const cls = (v) => (v > 0 ? "up" : v < 0 ? "down" : "");
+const money = (s) => num(s.p) + (s.cur === "EUR" ? " €" : s.cur === "USD" ? " $" : "");
+const dateDe = (iso) => iso.split("-").reverse().join(".");
+let D = null, byId = {}, filter = "rang", query = "", shown = 40, range = 120;
+
+function stars() { try { return JSON.parse(localStorage.getItem("stars") || "[]"); } catch (e) { return []; } }
+function setStars(a) { try { localStorage.setItem("stars", JSON.stringify(a)); } catch (e) {} }
+function toast(t) { const el = $("#toast"); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (el.hidden = true), 1800); }
+
+function spark(s) {
+  const c = s.c.slice(-60), lo = Math.min(...c), hi = Math.max(...c), n = c.length;
+  const pts = c.map((v, i) => (i / (n - 1) * 56).toFixed(1) + "," + (24 - (v - lo) / (hi - lo || 1) * 22).toFixed(1)).join(" ");
+  return `<svg class="spark" viewBox="0 0 56 26" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="var(--${c[n - 1] >= c[0] ? "up" : "down"})" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+}
+function statusPill(s) {
+  const k = s.st === "Beständig" ? "good" : s.st === "Zu neu" ? "warn" : "";
+  return `<span class="pill ${k}">${esc(s.st)}</span>`;
+}
+function zone(s) {
+  if (s.z == null) return "";
+  if (s.z < -2) return `<span class="pill good">Kaufzone</span>`;
+  if (s.z > 2) return `<span class="pill bad">Verkaufszone</span>`;
+  return "";
+}
+function swingText(s) {
+  if (!s.sw) return "kein Schwung ab 5 % im Zeitraum";
+  return (s.sw.pct > 0 ? "aufwärts " : "abwärts ") + pct(s.sw.pct, 0) + ", Tag " + s.sw.days;
+}
+function row(s, mode) {
+  const sub = mode === "watch"
+    ? `${money(s)} · <span class="${cls(s.d)}">${pct(s.d)}</span><span style="display:block">${swingText(s)}</span>`
+    : `${num(s.f, 1)} Schwünge je 4 Wochen<span style="display:block"><span style="color:var(--${s.st === "Beständig" ? "up" : s.st === "Zu neu" ? "warn" : "muted"})">${esc(s.st)}</span>` + (s.typ ? ` · typisch ±${num(s.typ * 100, 0)} %` : "") + `</span>`;
+  const right = mode === "watch" ? (zone(s) || statusPill(s)) : "";
+  return `<button class="row" data-open="${s.id}">${mode === "watch" ? "" : `<span class="rank">${s.r ?? "–"}</span>`}
+    <span class="grow"><span class="name" style="display:block">${esc(s.n)}</span><span class="sub">${sub}</span></span>${spark(s)}${right}</button>`;
+}
+
+function viewHeute() {
+  const mz = D.market_z, panic = mz != null && mz < D.market_panic, c = D.check;
+  const watch = D.watchlist.map((x) => D.stocks.find((s) => s.s === x)).filter(Boolean);
+  const maxH = Math.max(...c.series.map((x) => x.hits), 1), bw = 320 / c.series.length;
+  const bars = c.series.map((x, i) => `<rect x="${(i * bw + 1).toFixed(1)}" y="${(58 - x.hits / maxH * 52).toFixed(1)}" width="${(bw - 2).toFixed(1)}" height="${(x.hits / maxH * 52 + 2).toFixed(1)}" rx="1.5" fill="var(--fg)"/>`).join("");
+  const baseY = (58 - c.recent_base_hits / maxH * 52).toFixed(1);
+  const good = c.state === "wie erwartet";
+  return `
+  <section class="panel"><h2>Marktlage</h2>
+    <div class="big">${mz == null ? "Keine Daten" : panic ? "Ausverkauf" : "Ruhig"}</div>
+    <div class="sub">${mz == null ? "" : `S&amp;P 500 liegt ${num(Math.abs(mz), 1)} Standardabweichungen ${mz < 0 ? "unter" : "über"} seinem 20-Tage-Schnitt. Als Ausverkauf gilt ein Wert unter −${num(Math.abs(D.market_panic), 1)}.`}</div></section>
+  <section class="stack" style="gap:8px"><h2>Deine Watchlist</h2><div class="list">${watch.map((s) => row(s, "watch")).join("") || `<div class="row sub">Noch keine Aktien.</div>`}</div></section>
+  <section class="panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2>Ranking-Check</h2><span class="pill ${good ? "good" : "warn"}">${esc(c.state)}</span></div>
+    <div class="big">Zuletzt ${num(c.recent_hits, 1)} von 30 Treffern</div>
+    <div class="sub">Zufall wären ${num(c.recent_base_hits, 1)}. Treffer heißt: Eine der 30 bestplatzierten Aktien zeigte in den vier Wochen danach wieder ein klares Auf und Ab.</div>
+    <svg class="chart" viewBox="0 0 320 62" role="img" aria-label="Treffer je Stichtag über das letzte Jahr">${bars}<line x1="0" x2="320" y1="${baseY}" y2="${baseY}" stroke="var(--down)" stroke-width="1" stroke-dasharray="4 3"/></svg>
+    <div class="sub" style="display:flex;justify-content:space-between"><span>${dateDe(c.series[0].date)}</span><span>rote Linie: Zufall</span><span>${dateDe(c.series[c.series.length - 1].date)}</span></div></section>
+  <p class="sub">Stand ${esc(D.generated.split(" ")[0].split("-").reverse().join("."))}, ${esc(D.generated.split(" ")[1])} Uhr · ${num(D.universe, 0)} handelbare Aktien geprüft · Keine Anlageberatung.</p>`;
+}
+
+function listed() {
+  let a = D.stocks.filter((s) => s.r != null);
+  if (query) { const q = query.toLowerCase(); a = a.filter((s) => s.n.toLowerCase().includes(q) || s.s.toLowerCase().includes(q)); }
+  if (filter === "bestaendig") a = a.filter((s) => s.kb >= 2).sort((x, y) => y.kb - x.kb || x.r - y.r);
+  else if (filter === "aktuell") a = a.filter((s) => s.m4);
+  else if (filter === "tief") a = a.filter((s) => s.sw && s.sw.pct < 0 && s.sw.typ_pct && -s.sw.pct >= 0.8 * s.sw.typ_pct);
+  else if (filter === "gross") a = a.filter((s) => s.typ).sort((x, y) => y.typ - x.typ);
+  return a;
+}
+function viewEntdecken() {
+  const chips = [["rang", "Meiste Schwünge"], ["bestaendig", "Beständig"], ["aktuell", "Muster aktuell"], ["tief", "Nahe Tief"], ["gross", "Größte Schwünge"]];
+  const a = listed();
+  return `
+  <input type="search" id="q" placeholder="Rocket Lab" aria-label="Aktie suchen" value="${esc(query)}">
+  <div class="chips" role="group" aria-label="Sortierung">${chips.map(([k, t]) => `<button class="chip" data-filter="${k}" aria-pressed="${filter === k}">${t}</button>`).join("")}</div>
+  <div class="list">${a.slice(0, shown).map((s) => row(s)).join("") || `<div class="row sub">Keine Aktie passt zu dieser Auswahl.</div>`}</div>
+  ${a.length > shown ? `<button class="btn ghost" id="more">Weitere ${Math.min(40, a.length - shown)} anzeigen</button>` : ""}
+  <p class="sub">Die besten ${D.stocks.filter((s) => s.r != null && s.r <= 300).length} von ${num(D.universe, 0)} bei Trade Republic handelbaren Aktien, sortiert nach der Häufigkeit von Schwüngen ab 5 % in den letzten 24 Wochen.</p>`;
+}
+function viewWatchlist() {
+  const st = stars(), alarm = D.watchlist.map((x) => D.stocks.find((s) => s.s === x)).filter(Boolean);
+  const mine = st.map((id) => byId[id]).filter((s) => s && !D.watchlist.includes(s.s));
+  return `
+  <section class="stack" style="gap:8px"><h2>Mit Alarm aufs iPhone</h2><div class="list">${alarm.map((s) => row(s, "watch")).join("")}</div></section>
+  <section class="stack" style="gap:8px"><h2>Gemerkt auf diesem Gerät</h2><div class="list">${mine.map((s) => row(s, "watch")).join("") || `<div class="row sub">Tippe in einer Aktie auf den Stern, um sie hier zu merken.</div>`}</div></section>`;
+}
+
+function chart(s) {
+  const c = s.c, n = c.length, from = Math.max(0, n - range), W = 320, H = 150, P = 8;
+  const band = c.map((_, i) => { if (i < 19) return null; const w = c.slice(i - 19, i + 1), m = w.reduce((a, b) => a + b, 0) / 20; const sd = Math.sqrt(w.reduce((a, b) => a + (b - m) ** 2, 0) / 19); return [m - 2 * sd, m + 2 * sd]; });
+  let lo = Infinity, hi = -Infinity;
+  for (let i = from; i < n; i++) { lo = Math.min(lo, c[i], band[i] ? band[i][0] : c[i]); hi = Math.max(hi, c[i], band[i] ? band[i][1] : c[i]); }
+  const x = (i) => ((i - from) / (n - 1 - from || 1) * (W - 2 * P) + P).toFixed(1), y = (v) => (H - P - (v - lo) / (hi - lo || 1) * (H - 2 * P)).toFixed(1);
+  const idx = []; for (let i = from; i < n; i++) idx.push(i);
+  const bi = idx.filter((i) => band[i]);
+  const poly = bi.length > 1 ? `<polygon points="${bi.map((i) => x(i) + "," + y(band[i][1])).join(" ")} ${bi.slice().reverse().map((i) => x(i) + "," + y(band[i][0])).join(" ")}" fill="var(--band)"/>` : "";
+  const dots = s.piv.filter((i) => i >= from).map((i, k, a) => { const j = s.piv.indexOf(i), prev = s.piv[j - 1], next = s.piv[j + 1]; const high = prev != null ? c[i] > c[prev] : c[i] > c[next]; return `<circle cx="${x(i)}" cy="${y(c[i])}" r="3.2" fill="var(--${high ? "up" : "down"})"/>`; }).join("");
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Kursverlauf mit markierten Hochs und Tiefs">${poly}
+    <polyline points="${idx.map((i) => x(i) + "," + y(c[i])).join(" ")}" fill="none" stroke="var(--fg)" stroke-width="1.8" stroke-linejoin="round"/>${dots}
+    <circle cx="${x(n - 1)}" cy="${y(c[n - 1])}" r="4" fill="var(--accent)"/></svg>
+    <div class="sub" style="display:flex;justify-content:space-between"><span>Tief ${num(lo)}</span><span>grau: üblicher Bereich</span><span>Hoch ${num(hi)}</span></div>`;
+}
+function viewDetail(s) {
+  const sw = s.sw, prog = sw && sw.typ_pct ? Math.abs(sw.pct) / sw.typ_pct : 0, dir = sw && sw.pct > 0 ? "Aufschwung" : "Abschwung";
+  const ranges = [[21, "1 M"], [63, "3 M"], [120, "6 M"]];
+  return `
+  <div><div class="sub">${esc(s.s)}${s.r ? ` · Platz ${s.r} von ${num(D.universe, 0)}` : ""}</div>
+    <div class="price">${money(s)}</div><div class="${cls(s.d)}">${pct(s.d)} am letzten Handelstag (${dateDe(s.d1)})</div></div>
+  <section class="panel">${chart(s)}
+    <div class="chips" role="group" aria-label="Zeitraum">${ranges.map(([k, t]) => `<button class="chip" data-range="${k}" aria-pressed="${range === k}">${t}</button>`).join("")}</div></section>
+  <section class="panel"><h2>Aktueller Schwung</h2>
+    ${sw ? `<div class="big ${cls(sw.pct)}">${pct(sw.pct)} in ${sw.days} ${sw.days === 1 ? "Tag" : "Tagen"}</div>
+    <div class="meter"><i style="width:${Math.min(100, prog * 100).toFixed(0)}%"></i></div>
+    <div class="sub">${sw.typ_pct ? `Ein typischer ${dir} dieser Aktie: ${num(sw.typ_pct * 100, 0)} % in ${sw.typ_days} Tagen. Der laufende hat davon ${num(Math.min(prog, 9.99) * 100, 0)} % erreicht.` : "Zu wenige Schwünge für einen Vergleich."}</div>`
+    : `<div class="sub">Kein Schwung ab 5 % im Zeitraum.</div>`}</section>
+  <section class="panel"><div class="grid">
+    <div class="kv sub">Schwünge je 4 Wochen<b style="color:var(--fg)">${num(s.f, 1)}</b></div>
+    <div class="kv sub">Typischer Schwung<b style="color:var(--fg)">${s.typ ? "±" + num(s.typ * 100, 0) + " %" : "–"}</b></div>
+    <div class="kv sub">Klare Monate<b style="color:var(--fg)">${s.kb} von ${s.nb}</b></div>
+    <div class="kv sub">Einordnung<b style="color:var(--fg)">${esc(s.st)}</b></div></div>
+    <div class="sub">Klare Monate: Vier-Wochen-Blöcke mit mindestens 3 Schwüngen von je 5 % und wenig Netto-Bewegung.</div></section>
+  <section class="panel"><h2>Letzte Schwünge</h2>
+    ${s.legs.slice().reverse().map((l) => `<div class="leg"><span class="${cls(l.pct)}" style="font-weight:500">${pct(l.pct)}</span><span class="sub">${l.days} ${l.days === 1 ? "Tag" : "Tage"}</span></div>`).join("") || `<div class="sub">Noch keine abgeschlossenen Schwünge.</div>`}</section>
+  ${s.isin ? `<section class="panel"><h2>Bei Trade Republic finden</h2><div class="isin" id="isin">${esc(s.isin)}</div>
+    <button class="btn" id="copy">ISIN kopieren</button><div class="sub">In der Trade-Republic-App in die Suche einfügen.</div></section>` : ""}`;
+}
+
+function render() {
+  if (!D) return;
+  const h = (location.hash || "#heute").slice(1), tab = h.startsWith("a-") ? null : (["heute", "entdecken", "watchlist"].includes(h) ? h : "heute");
+  document.querySelectorAll(".tab").forEach((t) => t.dataset.tab === tab ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current"));
+  const act = $("#actions"); act.innerHTML = "";
+  if (!tab) {
+    const s = byId[h.slice(2)];
+    if (!s) { location.hash = "entdecken"; return; }
+    $("#title").textContent = s.n;
+    const on = stars().includes(s.id);
+    act.innerHTML = `<button class="icon" id="star" aria-pressed="${on}" aria-label="${on ? "Nicht mehr merken" : "Merken"}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z"/></svg></button>
+      <button class="icon" id="back" aria-label="Zurück"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`;
+    $("#view").innerHTML = viewDetail(s);
+  } else {
+    $("#title").textContent = { heute: "Heute", entdecken: "Entdecken", watchlist: "Watchlist" }[tab];
+    $("#view").innerHTML = tab === "heute" ? viewHeute() : tab === "entdecken" ? viewEntdecken() : viewWatchlist();
+  }
+}
+
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.tab) { location.hash = t.dataset.tab; window.scrollTo(0, 0); }
+  else if (t.dataset.open) { render.back = location.hash || "#heute"; range = 120; location.hash = "a-" + t.dataset.open; window.scrollTo(0, 0); }
+  else if (t.dataset.filter) { filter = t.dataset.filter; shown = 40; render(); }
+  else if (t.dataset.range) { range = +t.dataset.range; render(); }
+  else if (t.id === "more") { shown += 40; render(); }
+  else if (t.id === "back") { location.hash = (render.back || "#entdecken").slice(1); }
+  else if (t.id === "star") { const id = location.hash.slice(3); let a = stars(); a = a.includes(id) ? a.filter((x) => x !== id) : a.concat(id); setStars(a); render(); toast(a.includes(id) ? "Gemerkt" : "Entfernt"); }
+  else if (t.id === "copy") { const v = $("#isin").textContent; (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(() => toast("ISIN kopiert"), () => { const r = document.createRange(); r.selectNodeContents($("#isin")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("ISIN markiert, jetzt kopieren"); }); }
+});
+document.addEventListener("input", (e) => {
+  if (e.target.id !== "q") return;
+  query = e.target.value; shown = 40; const pos = e.target.selectionStart;
+  render(); const q = $("#q"); if (q) { q.focus(); q.setSelectionRange(pos, pos); }
+});
+window.addEventListener("hashchange", () => { render(); window.scrollTo(0, 0); });
+
+fetch("data.json").then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((d) => {
+  D = d; D.stocks.forEach((s) => (byId[s.id] = s)); render();
+}).catch(() => { $("#view").innerHTML = `<p class="sub">Die Daten konnten nicht geladen werden. Lade die Seite neu.</p>`; });
+</script>

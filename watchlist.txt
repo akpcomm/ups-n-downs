@@ -1,0 +1,11 @@
+# Eine Aktie pro Zeile (Yahoo-Symbol). Diese Liste nutzen App und Alerts.
+SPCX
+TSLA
+NVDA
+PLTR
+RKLB
+AMD
+COIN
+MSTR
+SAP.DE
+RHM.DE
