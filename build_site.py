@@ -17,6 +17,12 @@ import sys
 import warnings
 from datetime import datetime
 
+try:
+    from zoneinfo import ZoneInfo
+    BERLIN = ZoneInfo("Europe/Berlin")
+except Exception:
+    BERLIN = None
+
 warnings.filterwarnings("ignore")
 
 import numpy as np
@@ -146,7 +152,7 @@ def main():
         mz = None
 
     data = {
-        "generated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "generated": datetime.now(BERLIN).strftime("%Y-%m-%d %H:%M"),   # deutsche Zeit, auch auf GitHubs Servern
         "universe": int(len(df)),
         "market_z": None if mz is None else round(mz, 2),
         "market_panic": core.MKT_PANIC,
@@ -164,7 +170,7 @@ def main():
 
     # Warnung aufs iPhone, wenn das Ranking nachlässt (höchstens einmal pro Woche, montags)
     topic = os.environ.get("NTFY_TOPIC")
-    if "--notify" in sys.argv and topic and c["state"] != "wie erwartet" and datetime.now().weekday() == 0:
+    if "--notify" in sys.argv and topic and c["state"] != "wie erwartet" and datetime.now(BERLIN).weekday() == 0:
         import alerts
         alerts.send({
             "title": "ups'n'downs: Ranking " + c["state"],
