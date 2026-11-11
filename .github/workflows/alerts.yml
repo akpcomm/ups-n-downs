@@ -6,7 +6,12 @@ on:
     - cron: "*/15 7-20 * * 1-5"
     # Abschluss nach US-Börsenschluss: 22:30 Uhr Winterzeit
     - cron: "30 21 * * 1-5"
-  workflow_dispatch:   # zusätzlich von Hand startbar
+  workflow_dispatch:   # von Hand oder durch den Taktgeber von außen
+    inputs:
+      still:
+        description: "Still: nur melden, wenn es etwas Neues gibt (wie ein geplanter Lauf)"
+        type: boolean
+        default: false
 
 concurrency:
   group: alerts
@@ -29,8 +34,8 @@ jobs:
           path: state
           key: alert-state-${{ github.run_id }}
           restore-keys: alert-state-
-      # Von Hand gestartet: immer melden, auch wenn es nichts Neues gibt (als Funktionstest)
-      - run: python alerts.py ${{ github.event_name == 'workflow_dispatch' && '--always' || '' }}
+      # Von Hand gestartet ohne "still": immer melden, auch wenn es nichts Neues gibt (als Funktionstest)
+      - run: python alerts.py ${{ github.event_name == 'workflow_dispatch' && !inputs.still && '--always' || '' }}
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
       - run: mkdir -p state && touch state/sent.json

@@ -13,6 +13,21 @@ Keine Anlageberatung.
 
 Lässt das Ranking nach, kommt montags eine Warnung aufs iPhone.
 
+## Taktgeber von außen
+
+GitHub startet geplante Läufe oft mit Stunden Verspätung oder gar nicht. Deshalb stößt ein externer
+Dienst (cron-job.org) die Läufe im festen Takt an. Er ruft dazu GitHubs Schnittstelle mit einem
+Zugangsschlüssel auf, der nur Läufe in diesem Repository starten darf. Der Schlüssel liegt nur beim
+Taktgeber, nicht im Code.
+
+| Lauf | Adresse | Inhalt der Anfrage |
+|---|---|---|
+| Alerts | `https://api.github.com/repos/akpcomm/ups-n-downs/actions/workflows/alerts.yml/dispatches` | `{"ref":"main","inputs":{"still":"true"}}` |
+| Rangliste und App | `https://api.github.com/repos/akpcomm/ups-n-downs/actions/workflows/site.yml/dispatches` | `{"ref":"main"}` |
+
+Die Zeitpläne in den Workflow-Dateien bleiben als Reserve bestehen. Doppelte Meldungen entstehen
+dadurch nicht, weil sich die Alerts merken, was schon gemeldet wurde.
+
 ## Dateien
 
 | Datei | Zweck |
